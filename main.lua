@@ -8,29 +8,35 @@ return function(mod)
         STRENGTH = "RAINBOWBADGE",
     }
 
+    local function loadDataFile(relPath)
+        local text = mod:read(relPath)
+        local chunk = assert(load(text, "@" .. relPath))
+        return chunk()
+    end
+
     -- Get CUT Whitelist
-    local cutList = require("mods.ImmersiveFieldMoves.assets.move_whitelists.cut_whitelist")
+    local cutList = loadDataFile("assets/move_whitelists/cut_whitelist.lua")
     local CUT_WHITELIST = {}
     for _, species in ipairs(cutList) do
         CUT_WHITELIST[species] = true
     end
 
     -- Get FLASH Whitelist
-    local flashList = require("mods.ImmersiveFieldMoves.assets.move_whitelists.flash_whitelist")
+    local flashList = loadDataFile("assets/move_whitelists/flash_whitelist.lua")
     local FLASH_WHITELIST = {}
     for _, species in ipairs(flashList) do
         FLASH_WHITELIST[species] = true
     end
 
     -- Get DIG Whitelist
-    local digList = require("mods.ImmersiveFieldMoves.assets.move_whitelists.dig_whitelist")
+    local digList = loadDataFile("assets/move_whitelists/dig_whitelist.lua")
     local DIG_WHITELIST = {}
     for _, species in ipairs(digList) do
         DIG_WHITELIST[species] = true
     end
 
     -- Get TELEPORT Whitelist
-    local teleportList = require("mods.ImmersiveFieldMoves.assets.move_whitelists.teleport_whitelist")
+    local teleportList = loadDataFile("assets/move_whitelists/teleport_whitelist.lua")
     local TELE_WHITELIST = {}
     for _, species in ipairs(teleportList) do
         TELE_WHITELIST[species] = true

@@ -1,7 +1,7 @@
 # No more HM slaves!
 
 **The goal of this mod is to enhance immersion by letting Pokemon use Field Moves naturally, not only by learning the HM or TM.**
-Like, you wanna surf? Just get on your Lapras. You wanna cut a bush? Scyther literally has blades for arms.
+Like, you wanna surf? Just get on your Lapras. You wanna cut a bush? Scyther literally has blades for arms. Wanna light up a cave? Charmander has a flame on it's tail!
 
 > HM Moves can be used without teaching the HM to some species.
 The **badge is still a requirement** to use the move outside of battle.

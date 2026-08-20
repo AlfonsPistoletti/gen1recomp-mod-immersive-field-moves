@@ -4,5 +4,5 @@ return {
     "KADABRA",
     "ALAKAZAM",
     "MEWTWO",
-    "MEW"
+    "MEW",
 }

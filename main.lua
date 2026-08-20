@@ -1,9 +1,11 @@
 return function(mod)
 
-mod.options:define({
-        { key = "vanilla_move_order", type = "toggle",
-          label = "VANILLA MOVE ORDER", default = false },
-    })
+    mod.options:define({{
+        key = "vanilla_move_order",
+        type = "toggle",
+        label = "VANILLA MOVE ORDER",
+        default = false
+    }})
 
     local BADGE_REQUIREMENTS = {
         CUT = "CASCADEBADGE",
@@ -62,16 +64,27 @@ mod.options:define({
         TELE_WHITELIST[species] = true
     end
 
+    local function hasType(data, species, typeId)
+        local def = data.pokemon[species]
+        if not def or not def.types then
+            return false
+        end
+        for _, t in ipairs(def.types) do
+            if t == typeId then
+                return true
+            end
+        end
+        return false
+    end
+
     -- Check if selected species is a water type
     local function isWaterType(data, species)
-        local def = data.pokemon[species]
-        return def and (def.type1 == "WATER" or def.type2 == "WATER")
+        return hasType(data, species, "WATER")
     end
 
     -- Check if selected species is a flying type
     local function isFlyingType(data, species)
-        local def = data.pokemon[species]
-        return def and (def.type1 == "FLYING" or def.type2 == "FLYING")
+        return hasType(data, species, "FLYING")
     end
 
     -- Vanilla-Check: Does the species know the move
@@ -92,53 +105,88 @@ mod.options:define({
 
         -- CUT
         for i = #items, 1, -1 do
-            if items[i].action == "cut" then table.remove(items, i) end
+            if items[i].action == "cut" then
+                table.remove(items, i)
+            end
         end
         if hasBadge[BADGE_REQUIREMENTS.CUT] and (CUT_WHITELIST[mon.species] or knowsMove(mon, "CUT")) then
-            insertMove(items, { label = "CUT", action = "cut" })
+            insertMove(items, {
+                label = "CUT",
+                action = "cut"
+            })
         end
 
         -- FLY
         for i = #items, 1, -1 do
-            if items[i].action == "fly" then table.remove(items, i) end
+            if items[i].action == "fly" then
+                table.remove(items, i)
+            end
         end
         if hasBadge[BADGE_REQUIREMENTS.FLY] and (isFlyingType(game.data, mon.species) or knowsMove(mon, "FLY")) then
-            insertMove(items, { label = "FLY", action = "fly" })
+            insertMove(items, {
+                label = "FLY",
+                action = "fly"
+            })
         end
 
         -- SURF
         for i = #items, 1, -1 do
-            if items[i].action == "surf" then table.remove(items, i) end
+            if items[i].action == "surf" then
+                table.remove(items, i)
+            end
         end
         if hasBadge[BADGE_REQUIREMENTS.SURF] and (isWaterType(game.data, mon.species) or knowsMove(mon, "SURF")) then
-            insertMove(items, { label = "SURF", action = "surf" })
+            insertMove(items, {
+                label = "SURF",
+                action = "surf"
+            })
         end
 
         -- STRENGTH
         for i = #items, 1, -1 do
-            if items[i].action == "strength" then table.remove(items, i) end
+            if items[i].action == "strength" then
+                table.remove(items, i)
+            end
         end
         if hasBadge[BADGE_REQUIREMENTS.STRENGTH] and (mon.stats.attack > 55 or knowsMove(mon, "STRENGTH")) then
-            insertMove(items, { label = "STRENGTH", action = "strength" })
+            insertMove(items, {
+                label = "STRENGTH",
+                action = "strength"
+            })
         end
 
         -- FLASH
         for i = #items, 1, -1 do
-            if items[i].action == "flash" then table.remove(items, i) end
+            if items[i].action == "flash" then
+                table.remove(items, i)
+            end
         end
         if hasBadge[BADGE_REQUIREMENTS.FLASH] and (FLASH_WHITELIST[mon.species] or knowsMove(mon, "FLASH")) then
-            insertMove(items, { label = "FLASH", action = "flash" })
+            insertMove(items, {
+                label = "FLASH",
+                action = "flash"
+            })
         end
 
         -- DIG & TELEPORT
         for i = #items, 1, -1 do
-            if items[i].action == "escape" then table.remove(items, i) end
+            if items[i].action == "escape" then
+                table.remove(items, i)
+            end
         end
         if (DIG_WHITELIST[mon.species] or knowsMove(mon, "DIG")) then
-            insertMove(items, { label = "DIG", action = "escape", move = "DIG" })
+            insertMove(items, {
+                label = "DIG",
+                action = "escape",
+                move = "DIG"
+            })
         end
         if (TELE_WHITELIST[mon.species] or knowsMove(mon, "TELEPORT")) then
-            insertMove(items, { label = "TELEPORT", action = "escape", move = "TELEPORT" })
+            insertMove(items, {
+                label = "TELEPORT",
+                action = "escape",
+                move = "TELEPORT"
+            })
         end
 
         -- SOFTBOILED: vanilla

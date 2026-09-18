@@ -7,14 +7,6 @@ return function(mod)
         default = false
     }})
 
-    local BADGE_REQUIREMENTS = {
-        CUT = "CASCADEBADGE",
-        FLASH = "BOULDERBADGE",
-        SURF = "SOULBADGE",
-        FLY = "THUNDERBADGE",
-        STRENGTH = "RAINBOWBADGE"
-    }
-
     local function insertMove(items, entry)
         if mod.options:get("vanilla_move_order") then
             local insertAt = #items + 1
@@ -36,33 +28,20 @@ return function(mod)
         return chunk()
     end
 
-    -- Get CUT Whitelist
-    local cutList = loadDataFile("assets/move_whitelists/cut_whitelist.lua")
-    local CUT_WHITELIST = {}
-    for _, species in ipairs(cutList) do
-        CUT_WHITELIST[species] = true
+    local function loadWhitelist(relPath)
+        local set = {}
+        for _, species in ipairs(loadDataFile(relPath)) do
+            set[species] = true
+        end
+        return set
     end
 
-    -- Get FLASH Whitelist
-    local flashList = loadDataFile("assets/move_whitelists/flash_whitelist.lua")
-    local FLASH_WHITELIST = {}
-    for _, species in ipairs(flashList) do
-        FLASH_WHITELIST[species] = true
-    end
-
-    -- Get DIG Whitelist
-    local digList = loadDataFile("assets/move_whitelists/dig_whitelist.lua")
-    local DIG_WHITELIST = {}
-    for _, species in ipairs(digList) do
-        DIG_WHITELIST[species] = true
-    end
-
-    -- Get TELEPORT Whitelist
-    local teleportList = loadDataFile("assets/move_whitelists/teleport_whitelist.lua")
-    local TELE_WHITELIST = {}
-    for _, species in ipairs(teleportList) do
-        TELE_WHITELIST[species] = true
-    end
+    local CUT_WHITELIST = loadWhitelist("assets/move_whitelists/cut_whitelist.lua")
+    local FLASH_WHITELIST = loadWhitelist("assets/move_whitelists/flash_whitelist.lua")
+    local DIG_WHITELIST = loadWhitelist("assets/move_whitelists/dig_whitelist.lua")
+    local TELE_WHITELIST = loadWhitelist("assets/move_whitelists/teleport_whitelist.lua")
+    local STRENGTH_ATTACK_THRESHOLD = 100
+    local STRENGTH_WEIGHT_THRESHOLD = 100
 
     local function hasType(data, species, typeId)
         local def = data.pokemon[species]
@@ -87,6 +66,16 @@ return function(mod)
         return hasType(data, species, "FLYING")
     end
 
+    -- Pokedex-listed weight in pounds, for the STRENGTH weight requirement
+    local function weightLbs(data, species)
+        local def = data.pokemon[species]
+        local e = def and def.dexEntry
+        if not e or not e.weight then
+            return 0
+        end
+        return e.weight / 10
+    end
+
     -- Vanilla-Check: Does the species know the move
     local function knowsMove(mon, moveId)
         for _, mv in ipairs(mon.moves) do
@@ -97,96 +86,104 @@ return function(mod)
         return false
     end
 
+    -- Single source of truth for every field move: the menu
+    -- row it adds, its badge gate (if any), and the species/type/stat rule
+    -- that lets a mon use it without knowing the TM/HM move outright. Both
+    -- the menu-display hook and the execution-eligibility hook below read
+    -- from this same table so they can never disagree about who qualifies.
+    local MOVES = {
+        CUT = {
+            label = "CUT",
+            action = "cut",
+            badge = "CASCADEBADGE",
+            check = function(game, mon) return CUT_WHITELIST[mon.species] end
+        },
+        FLY = {
+            label = "FLY",
+            action = "fly",
+            badge = "THUNDERBADGE",
+            check = function(game, mon) return isFlyingType(game.data, mon.species) end
+        },
+        SURF = {
+            label = "SURF",
+            action = "surf",
+            badge = "SOULBADGE",
+            check = function(game, mon) return isWaterType(game.data, mon.species) end
+        },
+        STRENGTH = {
+            label = "STRENGTH",
+            action = "strength",
+            badge = "RAINBOWBADGE",
+            check = function(game, mon)
+                return mon.stats.attack > STRENGTH_ATTACK_THRESHOLD and weightLbs(game.data, mon.species) >= STRENGTH_WEIGHT_THRESHOLD
+            end
+        },
+        FLASH = {
+            label = "FLASH",
+            action = "flash",
+            badge = "BOULDERBADGE",
+            check = function(game, mon) return FLASH_WHITELIST[mon.species] end
+        },
+        DIG = {
+            label = "DIG",
+            action = "escape",
+            move = "DIG",
+            check = function(game, mon) return DIG_WHITELIST[mon.species] end
+        },
+        TELEPORT = {
+            label = "TELEPORT",
+            action = "escape",
+            move = "TELEPORT",
+            check = function(game, mon) return TELE_WHITELIST[mon.species] end
+        }
+    }
+    local MOVE_ORDER = { "CUT", "FLY", "SURF", "STRENGTH", "FLASH", "DIG", "TELEPORT" }
+
+    -- Does `mon` currently qualify to use `moveId` in the field, badge and
+    -- all? Works with either a `game` table (from ui.party.submenu) or a
+    -- `ctx` table (from fieldmove.eligibility) since both expose .save/.data.
+    local function qualifies(gameOrCtx, mon, moveId)
+        local def = MOVES[moveId]
+        if not def then
+            return false
+        end
+        if def.badge and not gameOrCtx.save.inventory[def.badge] then
+            return false
+        end
+        return def.check(gameOrCtx, mon) or knowsMove(mon, moveId)
+    end
+
+    -- The party member whose submenu is currently (or was last) open in the
+    -- overworld. Set below whenever ui.party.submenu builds a non-battle
+    -- submenu; fieldmove.eligibility prefers this mon so that using CUT/SURF
+    -- credits whoever's submenu the player actually opened, instead of
+    -- always resolving to the first qualifying party slot.
+    local pendingMon = nil
+
     -- Display Field Move in menu
     mod.hooks:wrap("ui.party.submenu", function(orig, game, items, mon, ctx)
         items = orig(game, items, mon, ctx)
 
-        local hasBadge = game.save.inventory
-
-        -- CUT
-        for i = #items, 1, -1 do
-            if items[i].action == "cut" then
-                table.remove(items, i)
+        -- Field moves only belong in the overworld submenu; the same hook
+        -- also fires for the in-battle SWITCH/STATS/CANCEL submenu, which
+        -- must stay untouched.
+        for _, moveId in ipairs(MOVE_ORDER) do
+            local def = MOVES[moveId]
+            for i = #items, 1, -1 do
+                if items[i].action == def.action then
+                    table.remove(items, i)
+                end
             end
         end
-        if hasBadge[BADGE_REQUIREMENTS.CUT] and (CUT_WHITELIST[mon.species] or knowsMove(mon, "CUT")) then
-            insertMove(items, {
-                label = "CUT",
-                action = "cut"
-            })
-        end
 
-        -- FLY
-        for i = #items, 1, -1 do
-            if items[i].action == "fly" then
-                table.remove(items, i)
+        if not ctx.battle then
+            pendingMon = mon
+            for _, moveId in ipairs(MOVE_ORDER) do
+                local def = MOVES[moveId]
+                if qualifies(game, mon, moveId) then
+                    insertMove(items, { label = def.label, action = def.action, move = def.move })
+                end
             end
-        end
-        if hasBadge[BADGE_REQUIREMENTS.FLY] and (isFlyingType(game.data, mon.species) or knowsMove(mon, "FLY")) then
-            insertMove(items, {
-                label = "FLY",
-                action = "fly"
-            })
-        end
-
-        -- SURF
-        for i = #items, 1, -1 do
-            if items[i].action == "surf" then
-                table.remove(items, i)
-            end
-        end
-        if hasBadge[BADGE_REQUIREMENTS.SURF] and (isWaterType(game.data, mon.species) or knowsMove(mon, "SURF")) then
-            insertMove(items, {
-                label = "SURF",
-                action = "surf"
-            })
-        end
-
-        -- STRENGTH
-        for i = #items, 1, -1 do
-            if items[i].action == "strength" then
-                table.remove(items, i)
-            end
-        end
-        if hasBadge[BADGE_REQUIREMENTS.STRENGTH] and (mon.stats.attack > 55 or knowsMove(mon, "STRENGTH")) then
-            insertMove(items, {
-                label = "STRENGTH",
-                action = "strength"
-            })
-        end
-
-        -- FLASH
-        for i = #items, 1, -1 do
-            if items[i].action == "flash" then
-                table.remove(items, i)
-            end
-        end
-        if hasBadge[BADGE_REQUIREMENTS.FLASH] and (FLASH_WHITELIST[mon.species] or knowsMove(mon, "FLASH")) then
-            insertMove(items, {
-                label = "FLASH",
-                action = "flash"
-            })
-        end
-
-        -- DIG & TELEPORT
-        for i = #items, 1, -1 do
-            if items[i].action == "escape" then
-                table.remove(items, i)
-            end
-        end
-        if (DIG_WHITELIST[mon.species] or knowsMove(mon, "DIG")) then
-            insertMove(items, {
-                label = "DIG",
-                action = "escape",
-                move = "DIG"
-            })
-        end
-        if (TELE_WHITELIST[mon.species] or knowsMove(mon, "TELEPORT")) then
-            insertMove(items, {
-                label = "TELEPORT",
-                action = "escape",
-                move = "TELEPORT"
-            })
         end
 
         -- SOFTBOILED: vanilla
@@ -203,56 +200,19 @@ return function(mod)
 
     -- Override Field Move eligibility check
     mod.hooks:wrap("fieldmove.eligibility", function(orig, moveId, ctx)
-        local badge = BADGE_REQUIREMENTS[moveId]
-        if badge and not ctx.save.inventory[badge] then
-            return nil
+        if not MOVES[moveId] then
+            return orig(moveId, ctx)
         end
 
-        if moveId == "CUT" then
-            for _, partyMon in ipairs(ctx.save.party) do
-                if CUT_WHITELIST[partyMon.species] or knowsMove(partyMon, "CUT") then
-                    return partyMon
-                end
+        if pendingMon and qualifies(ctx, pendingMon, moveId) then
+            return pendingMon
+        end
+
+        for _, partyMon in ipairs(ctx.save.party) do
+            if qualifies(ctx, partyMon, moveId) then
+                return partyMon
             end
-            return nil
         end
-
-        if moveId == "FLY" then
-            for _, partyMon in ipairs(ctx.save.party) do
-                if isFlyingType(ctx.data, partyMon.species) or knowsMove(partyMon, "FLY") then
-                    return partyMon
-                end
-            end
-            return nil
-        end
-
-        if moveId == "SURF" then
-            for _, partyMon in ipairs(ctx.save.party) do
-                if isWaterType(ctx.data, partyMon.species) or knowsMove(partyMon, "SURF") then
-                    return partyMon
-                end
-            end
-            return nil
-        end
-
-        if moveId == "STRENGTH" then
-            for _, partyMon in ipairs(ctx.save.party) do
-                if partyMon.stats.attack > 55 or knowsMove(partyMon, "STRENGTH") then
-                    return partyMon
-                end
-            end
-            return nil
-        end
-
-        if moveId == "FLASH" then
-            for _, partyMon in ipairs(ctx.save.party) do
-                if FLASH_WHITELIST[partyMon.species] or knowsMove(partyMon, "FLASH") then
-                    return partyMon
-                end
-            end
-            return nil
-        end
-
-        return orig(moveId, ctx)
+        return nil
     end)
 end

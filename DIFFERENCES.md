@@ -10,7 +10,7 @@ To create an immersive feel, field moves are tied to different factors:
 
 * SURF can be used by ANY Water types.
 
-* STRENGTH can be used by ANY species that has an attack value of at least 55.
+* STRENGTH can be used by ANY species that has an attack value of at least 100 and that weighs at least 100lbs.
 
 * FLASH can be used by Electric Types, species with visible flames or psychic abilities.
 

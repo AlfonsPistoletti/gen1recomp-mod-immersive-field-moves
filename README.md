@@ -2,13 +2,14 @@
 
 **This mod aims to enhance immersion by letting Pokemon use Field Moves naturally, not only by learning the HM or TM.**<br/>
 
-Like, you wanna surf? Just get on your Lapras. You wanna cut a bush? Scyther literally has blades for arms.<br/>
+Like, you wanna surf? Just get on your Lapras. You wanna cut a bush? Scyther literally has blades for arms. Need to light up a cave? Use the flame on Charmander's tail.<br/>
+This encourages you to build a diverse team without relying on one Pokemon, you only teach HMs to.
 
 Note that the **badge is still a requirement** to use the move in the field.<br/>
 Learnsets are untouched, so teaching moves works the way it used to.
 
 
-# Main Changes
+# What does this mod do?
 To create an immersive feel, field moves are tied to different factors:
 
 * **CUT** can be used by any species with **visible claws, blades or pincers**.
@@ -17,7 +18,7 @@ To create an immersive feel, field moves are tied to different factors:
 
 * **SURF** can be used by **ANY Water types**.
 
-* **STRENGTH** can be used by ANY species that has an **attack value of at least 55**. (That is the attack value of a Lv. 25 Rhyhorn with 15 Attack IVs. We'll have to see if it's well balanced. I'm thinking of making only Rock and Ground types able to use the move naturally)
+* **STRENGTH** can be used by ANY species that has an **attack value of at least 100 AND that weighs at least 100lbs**.
 
 * **FLASH** can be used by **Electric Types**, species with **visible flames or psychic abilities**.
 

@@ -1,7 +1,7 @@
 {
   "id": "immersive_field_moves",
   "name": "Immersive Field Moves",
-  "version": "1.0.1",
+  "version": "1.0.5",
   "api": 2,
   "entry": "main.lua",
   "profile": "content",
@@ -15,6 +15,6 @@
   "permissions": ["engine_internals"],
   "games": ["gen1"],
   "experimental": false,
-  "description": "Pokemon can use field moves naturally",
+  "description": "Pokemon can use field moves naturally. Supports Pokemon up to gen5",
   "github": "AlfonsPistoletti/gen1recomp-mod-immersive-field-moves"
 }

@@ -17,4 +17,8 @@ return {
     "CRESSELIA",
     "DARKRAI",
     "ARCEUS",
+    "HOOPA",
+    "ETERNATUS",
+    "CALYREX",
+    "ENAMORUS"
 }

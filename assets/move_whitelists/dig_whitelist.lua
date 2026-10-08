@@ -5,5 +5,14 @@ return {
     "SANDSHREW",
     "SANDSLASH",
     "DRILBUR",
-    "EXCADRILL"
+    "EXCADRILL",
+    "BINACLE",
+    "BARBARACLE",
+    "SANDYGAST",
+    "PALOSSAND",
+    "SILICOBRA",
+    "SANDACONDA",
+    "WIGLETT",
+    "WUGTRIO",
+    "ORTHWORM"   
 }
